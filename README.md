@@ -8,7 +8,8 @@ A simple CLI that transforms your code into clean, structured text for feeding i
 ```
 
 ## Why
-When coding with AI it takes a lot of time to copy and paste and format code snippets. llmcat automates this process, allowing you to spend more time coding and less time formatting.
+Copying, pasting, and formatting code for AI tools takes time.
+LLMCat automates this, letting you focus on coding instead of formatting.
 
 ## Features
 - **Automatic Formatting**: Converts code files into clean, structured text.
@@ -36,20 +37,28 @@ brew install llmcat
 ```
 
 ## Usage
-LLMCat can be run manually from the commmand line:
-
+Run LLMCat on a single file:
 ```
 llmcat path/to/your/codefile.py
 ```
 
-Or you can run it using custom settings by running it on a directory containing a `.llmcat.toml` configuration file:
-
+Run LLMCat on a directory using a `.llmcat.toml` configuration:
 ```
 llmcat path/to/your/project
 ```
 
 ## Configuration
-LLMCat can be configured using a `.llmcat.toml` file. Here is an example configuration:
+LLMCat can be configured using a `.llmcat.toml` file. There is an example under `examples/code`:
+```
+.
+├── docs
+│   └── info.md
+├── hello.js
+├── .llmcat.toml
+└── world.py
+```
+
+`.llmcat.toml`:
 ```toml
 [settings]
 remove_comments = true
@@ -59,6 +68,33 @@ remove_whitespace = true
 include = ["*.py", "*.js"]
 exclude = ["tests/*", "docs/*"]
 ```
+
+```
+llmcat examples/code
+```
+```
+Using config: ~/llmcat/examples/code/.llmcat.toml
+
+===== FILE: hello.js =====
+function fib(n) {
+  if (n <= 1) {
+    return n;
+  }
+  return fib(n - 1) + fib(n - 2);
+}
+
+console.log(fib(10));
+
+===== FILE: world.py =====
+def foo(bar):
+    print(f"Foo {bar}")
+```
+
+
+Rules:
+- Files are collected based on the `[paths].include` patterns.
+- Files matching the `[paths].exclude` patterns are ignored, and `.llmcat.toml` itself is always excluded.
+- Settings in the `[settings]` section control how files are processed.
 
 ## Contributing
 Contributions are welcome! Please open an issue or submit a pull request on GitHub.

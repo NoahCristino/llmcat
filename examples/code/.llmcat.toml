@@ -1,0 +1,7 @@
+[settings]
+remove_comments = true
+remove_whitespace = true
+
+[paths]
+include = ["*.py", "*.js"]
+exclude = ["tests/*", "docs/*"]
