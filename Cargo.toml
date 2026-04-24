@@ -1,7 +1,10 @@
 [package]
 name = "llmcat"
-version = "0.1.0"
+version = "1.2.0"
 edition = "2024"
+description = "A simple CLI that transforms your code into clean, structured text for feeding into LLMs."
+license = "MIT"
+repository = "https://github.com/NoahCristino/llmcat"
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
