@@ -1,5 +1,6 @@
 use arboard::Clipboard;
 use clap::Parser;
+use colored::*;
 use glob::{Pattern, glob};
 use inline_colorization::*;
 use regex::Regex;
@@ -201,7 +202,7 @@ fn main() {
     let inputs = resolve_inputs(&args, &config);
 
     if inputs.is_empty() {
-        println!("LLMCat\n/\\_/\\\n( o.o )\n> ^ <  LLMCat\nv. 1.2.0");
+        print_welcome_screen();
         return;
     }
 
@@ -250,4 +251,32 @@ fn main() {
 
     println!("{color_yellow}c{color_reset} - copy | {color_yellow}q{color_reset} - quit");
     read_input(&full_output);
+}
+
+fn print_welcome_screen() {
+    println!(
+        r#"
+    /\_/\
+   ( o.o )
+    > ^ <  LLMCat v1.3.1
+    "#
+    );
+
+    println!("{}", "A CLI to prep code for LLMs.".bold());
+    println!("---------------------------------------");
+
+    println!("\n{}", "🚀 QUICK START".yellow());
+    println!("  llmcat <file>      Process a single file");
+    println!("  llmcat ./src       Process a directory");
+    println!("  llmcat .           Process current dir with .llmcat.toml");
+
+    println!("\n{}", "✨ FEATURES".yellow());
+    println!("  • Automatic Formatting  • Multi-file Support");
+    println!("  • Comment Stripping     • Clipboard Integration");
+
+    println!("\n{}", "⚙️  CONFIGURATION".yellow());
+    println!("  Create a .llmcat.toml to automate includes/excludes.");
+
+    println!("\n{}", "For full options, run: llmcat --help".dimmed());
+    println!();
 }
