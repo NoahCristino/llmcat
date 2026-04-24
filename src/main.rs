@@ -1,3 +1,4 @@
+use arboard::Clipboard;
 use clap::Parser;
 use glob::{Pattern, glob};
 use inline_colorization::*;
@@ -99,20 +100,10 @@ fn collect_files(inputs: &[String]) -> Vec<PathBuf> {
 }
 
 fn strip_comments(content: &str) -> String {
-    // 1. Block comments: /* ... */ (Safe to remove multiline)
     let block_comment = Regex::new(r"(?s)/\*.*?\*/").unwrap();
     let no_block = block_comment.replace_all(content, "");
-
-    // 2. C-style single line: //
-    // We require a space after // to avoid hitting "https://"
     let slash_comment = Regex::new(r"//\s.*").unwrap();
     let no_slash = slash_comment.replace_all(&no_block, "");
-
-    // 3. Python/Shell style: #
-    // CRITICAL FIX: Only treat as a comment if:
-    // - It's followed by a space (e.g., "# comment")
-    // - OR it's the very last thing on a line.
-    // This prevents nuking CSS (#id), Hex (#fff), or JS variables (#{val})
     let hash_comment = Regex::new(r"(?m)(^|\s)#(\s.*|$)").unwrap();
     let result = hash_comment.replace_all(&no_slash, "$1");
 
@@ -153,15 +144,47 @@ fn read_input(full_output: &str) {
         std::io::stdin().read_line(&mut input).unwrap();
         match input.trim() {
             "c" => {
-                let mut child = Command::new("wl-copy")
-                    .stdin(Stdio::piped())
-                    .spawn()
-                    .expect("failed to spawn wl-copy");
+                // Detect Wayland
+                let is_wayland = std::env::var("WAYLAND_DISPLAY").is_ok();
 
-                if let Some(mut stdin) = child.stdin.take() {
-                    stdin.write_all(full_output.as_bytes()).unwrap();
+                if is_wayland {
+                    // Use wl-copy for persistence
+                    match Command::new("wl-copy").stdin(Stdio::piped()).spawn() {
+                        Ok(mut child) => {
+                            if let Some(mut stdin) = child.stdin.take() {
+                                let _ = stdin.write_all(full_output.as_bytes());
+                            }
+                            println!("{color_green}Copied to clipboard!{color_reset}");
+                        }
+                        Err(e) => {
+                            println!("wl-copy failed: {}", e);
+                            println!("Falling back to arboard...");
+
+                            // fallback
+                            if let Ok(mut clipboard) = Clipboard::new() {
+                                let _ = clipboard.set_text(full_output.to_string());
+                            } else {
+                                println!("{}", full_output);
+                            }
+                        }
+                    }
+                } else {
+                    // Use arboard everywhere else
+                    match Clipboard::new() {
+                        Ok(mut clipboard) => {
+                            if let Err(e) = clipboard.set_text(full_output.to_string()) {
+                                println!("Failed to copy: {}", e);
+                                println!("{}", full_output);
+                            } else {
+                                println!("{color_green}Copied to clipboard!{color_reset}");
+                            }
+                        }
+                        Err(e) => {
+                            println!("Clipboard not available: {}", e);
+                            println!("{}", full_output);
+                        }
+                    }
                 }
-                println!("{color_green}Copied to clipboard!{color_reset}");
             }
             "q" => {
                 println!("Exiting.");
@@ -212,14 +235,12 @@ fn main() {
             line_count
         );
 
-        // Preview
         let preview: String = content.lines().take(10).collect::<Vec<&str>>().join("\n");
         println!("{color_green}{preview}{color_reset}");
         if line_count > 10 {
             println!("...");
         }
 
-        // Build clipboard string with proper newlines
         full_output.push_str(&format!("\n===== FILE: {} =====\n", path.display()));
         full_output.push_str(&content);
         if !content.ends_with('\n') {
