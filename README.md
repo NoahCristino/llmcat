@@ -1,4 +1,4 @@
-# llmcat
+# 🐱 llmcat
 
 ```
 /\\_/\\
@@ -8,41 +8,41 @@
 A simple CLI that transforms your code into clean, structured text for feeding into LLMs.
 ```
 
-## Why LLMCat?
+## 🤔 Why LLMCat?
 
-Copying, pasting, and formatting code for AI tools takes time.
-LLMCat automates this, letting you focus on coding instead of formatting.
+Copying, pasting, and formatting code for AI tools is annoying and slow.
+LLMCat automates the boring parts so you can stay focused on actually building things.
 
 ## ✨ Features
 
-- **Automatic Formatting**: Converts code files into clean, structured text.
-- **Code Cleanup**: Removes unnecessary comments and whitespace.
-- **Multi-file Support**: Process multiple files or entire directories at once.
-- **Customizable Output**: Configurable output formats that suit your needs.
-- **Persistent Settings**: Save your preferences for future use.
-- **Easy Integration**: Simple CLI that can be integrated into your workflow.
+- ⚡ Automatic Formatting — Turns messy code into clean, structured text
+- 🧹 Code Cleanup — Removes unnecessary comments and whitespace
+- 📁 Multi-file Support — Works on single files or entire directories
+- 🎛️ Customizable Output — Tailor formatting to your workflow
+- 💾 Persistent Settings — Save configs and reuse them anytime
+- 🔌 Easy Integration — Lightweight CLI that fits anywhere
 
 ## 🚀 Installation
 
-### macOS & Linux (One-liner)
+### 🍎 macOS & 🐧 Linux (One-liner)
 
 ```
 curl --proto '=https' --tlsv1.2 -LsSf https://github.com/NoahCristino/llmcat/releases/download/v1.2.0/llmcat-installer.sh | sh
 ```
 
-### macOS (Homebrew)
+### 🍺 macOS (Homebrew)
 
 ```
 brew install NoahCristino/tap/llmcat
 ```
 
-### Windows (PowerShell)
+### 🪟 Windows (PowerShell)
 
 ```
 powershell -ExecutionPolicy Bypass -c "irm https://github.com/NoahCristino/llmcat/releases/download/v1.2.0/llmcat-installer.ps1 | iex"
 ```
 
-### From Source
+### 🛠️ From Source
 
 ```
 git clone https://github.com/NoahCristino/llmcat.git
@@ -51,7 +51,7 @@ cargo build --release
 cargo install --path .
 ```
 
-## Usage
+## ▶️ Usage
 
 Run LLMCat on a single file:
 
@@ -65,7 +65,7 @@ Run LLMCat on a directory:
 llmcat ./src
 ```
 
-## Configuration
+## ⚙️ Configuration
 
 LLMCat can be configured using a `.llmcat.toml` file. There is an example in `examples/code`:
 
@@ -79,13 +79,13 @@ include = ["*.py", "*.js"]
 exclude = ["tests/*", "docs/*"]
 ```
 
-When you run:
+Run:
 
 ```
 llmcat .
 ```
 
-in the `examples/code` directory, LLMCat will process `hello.js` and `world.py`, but will ignore `docs/info.md` and `.llmcat.toml` itself, resulting in output like:
+Example output:
 
 ```
 Using config: /home/user/llmcat/examples/code/.llmcat.toml
@@ -107,19 +107,24 @@ c - copy | q - quit
 :
 ```
 
-You can then press `c` to copy the output to your clipboard, or `q` to quit.
+Then:
+Press c 📋 to copy output
+Press q ❌ to q
 
-Rules:
+## 📏 Rules
 
-- Files are collected based on the `[paths].include` patterns.
-- Files matching the `[paths].exclude` patterns are ignored, and `.llmcat.toml` itself is always excluded.
-- Settings in the `[settings]` section control how files are processed.
+- ✅ Files must match [paths].include
+- 🚫 Files matching [paths].exclude are ignored
+- 🔒 .llmcat.toml is always excluded
+- ⚙️ [settings] controls processing behavior
 
-## Contributing
+## 🤝 Contributing
 
-Contributions are welcome! Please open an issue or submit a pull request on GitHub.
+Got ideas or improvements?
+
+- Open an issue 💡
+- Submit a PR 🚀
 
 ## License
 
-This project is licensed under the MIT License.
-See `LICENSE` for details.
+MIT License — see `LICENSE` for details.
