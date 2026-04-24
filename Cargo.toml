@@ -5,6 +5,7 @@ edition = "2024"
 description = "A simple CLI that transforms your code into clean, structured text for feeding into LLMs."
 license = "MIT"
 repository = "https://github.com/NoahCristino/llmcat"
+homepage = "https://github.com/NoahCristino/llmcat"
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
@@ -16,3 +17,8 @@ regex = "1.10"
 inline_colorization = "0.1.6"
 clipboard = "0.5.0"
 arboard = "3.6.1"
+
+# The profile that 'dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"
