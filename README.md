@@ -27,7 +27,7 @@ LLMCat automates the boring parts so you can stay focused on actually building t
 ### 🍎 macOS & 🐧 Linux (One-liner)
 
 ```
-curl --proto '=https' --tlsv1.2 -LsSf https://github.com/NoahCristino/llmcat/releases/download/v1.2.0/llmcat-installer.sh | sh
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/NoahCristino/llmcat/releases/download/v1.3.1/llmcat-installer.sh | sh
 ```
 
 ### 🍺 macOS (Homebrew)
@@ -39,7 +39,7 @@ brew install NoahCristino/tap/llmcat
 ### 🪟 Windows (PowerShell)
 
 ```
-powershell -ExecutionPolicy Bypass -c "irm https://github.com/NoahCristino/llmcat/releases/download/v1.2.0/llmcat-installer.ps1 | iex"
+powershell -ExecutionPolicy Bypass -c "irm https://github.com/NoahCristino/llmcat/releases/download/v1.3.1/llmcat-installer.ps1 | iex"
 ```
 
 ### 🛠️ From Source
@@ -50,6 +50,8 @@ cd llmcat
 cargo build --release
 cargo install --path .
 ```
+
+See [releases](https://github.com/NoahCristino/llmcat/releases) for more installation options.
 
 ## ▶️ Usage
 
