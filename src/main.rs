@@ -1,15 +1,20 @@
 use clap::Parser;
-use glob::Pattern;
-use glob::glob;
+use glob::{Pattern, glob};
+use inline_colorization::*;
+use regex::Regex;
 use serde::Deserialize;
 use std::env;
 use std::fs;
+use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
 use walkdir::WalkDir;
 
 #[derive(Parser, Debug)]
-#[command(name = "llmprint")]
-#[command(about = "Bundle source files into LLM-ready context")]
+#[command(
+    name = "llmprint",
+    about = "Bundle source files into LLM-ready context"
+)]
 struct Args {
     inputs: Vec<String>,
 }
@@ -23,6 +28,7 @@ struct Config {
 #[derive(Debug, Deserialize)]
 struct Settings {
     remove_comments: Option<bool>,
+    #[allow(dead_code)]
     remove_whitespace: Option<bool>,
 }
 
@@ -34,19 +40,16 @@ struct Paths {
 
 fn find_config() -> Option<PathBuf> {
     let mut dir = env::current_dir().ok()?;
-
     loop {
         let candidate = dir.join(".llmcat.toml");
         if candidate.exists() {
             println!("Using config: {}", candidate.display());
             return Some(candidate);
         }
-
         if !dir.pop() {
             break;
         }
     }
-
     None
 }
 
@@ -66,42 +69,58 @@ fn resolve_inputs(args: &Args, config: &Option<Config>) -> Vec<String> {
     args.inputs.clone()
 }
 
-fn collect_paths(inputs: &[String]) -> Vec<PathBuf> {
-    let mut paths = Vec::new();
-
+fn collect_files(inputs: &[String]) -> Vec<PathBuf> {
+    let mut files = Vec::new();
     for input in inputs {
-        let p = Path::new(input);
-
-        if p.is_dir() {
-            for entry in WalkDir::new(p)
+        let path = Path::new(input);
+        if path.is_dir() {
+            for entry in WalkDir::new(path)
                 .into_iter()
                 .filter_map(Result::ok)
                 .filter(|e| e.file_type().is_file())
             {
-                paths.push(entry.path().to_path_buf());
+                files.push(entry.path().to_path_buf());
             }
         } else if input.contains('*') {
             if let Ok(entries) = glob(input) {
                 for entry in entries.flatten() {
                     if entry.is_file() {
-                        paths.push(entry);
+                        files.push(entry);
                     }
                 }
             }
-        } else if p.is_file() {
-            paths.push(p.to_path_buf());
+        } else if path.is_file() {
+            files.push(path.to_path_buf());
         }
     }
-
-    paths.sort();
-    paths.dedup();
-    paths
+    files.sort();
+    files.dedup();
+    files
 }
 
-fn apply_excludes(paths: Vec<PathBuf>, config: &Option<Config>) -> Vec<PathBuf> {
-    // always exclude the config file itself
-    let mut patterns = vec![Pattern::new(".llmcat.toml").unwrap()];
+fn strip_comments(content: &str) -> String {
+    // 1. Block comments: /* ... */ (Safe to remove multiline)
+    let block_comment = Regex::new(r"(?s)/\*.*?\*/").unwrap();
+    let no_block = block_comment.replace_all(content, "");
 
+    // 2. C-style single line: //
+    // We require a space after // to avoid hitting "https://"
+    let slash_comment = Regex::new(r"//\s.*").unwrap();
+    let no_slash = slash_comment.replace_all(&no_block, "");
+
+    // 3. Python/Shell style: #
+    // CRITICAL FIX: Only treat as a comment if:
+    // - It's followed by a space (e.g., "# comment")
+    // - OR it's the very last thing on a line.
+    // This prevents nuking CSS (#id), Hex (#fff), or JS variables (#{val})
+    let hash_comment = Regex::new(r"(?m)(^|\s)#(\s.*|$)").unwrap();
+    let result = hash_comment.replace_all(&no_slash, "$1");
+
+    result.to_string()
+}
+
+fn apply_excludes(files: Vec<PathBuf>, config: &Option<Config>) -> Vec<PathBuf> {
+    let mut patterns = vec![Pattern::new(".llmcat.toml").unwrap()];
     if let Some(cfg) = config {
         if let Some(paths_cfg) = &cfg.paths {
             if let Some(exclude_patterns) = &paths_cfg.exclude {
@@ -113,8 +132,7 @@ fn apply_excludes(paths: Vec<PathBuf>, config: &Option<Config>) -> Vec<PathBuf> 
             }
         }
     }
-
-    paths
+    files
         .into_iter()
         .filter(|path| !patterns.iter().any(|pat| pat.matches_path(path)))
         .collect()
@@ -127,31 +145,88 @@ fn is_binary(path: &Path) -> bool {
     }
 }
 
+fn read_input(full_output: &str) {
+    loop {
+        print!("{color_yellow}:{color_reset} ");
+        std::io::stdout().flush().unwrap();
+        let mut input = String::new();
+        std::io::stdin().read_line(&mut input).unwrap();
+        match input.trim() {
+            "c" => {
+                let mut child = Command::new("wl-copy")
+                    .stdin(Stdio::piped())
+                    .spawn()
+                    .expect("failed to spawn wl-copy");
+
+                if let Some(mut stdin) = child.stdin.take() {
+                    stdin.write_all(full_output.as_bytes()).unwrap();
+                }
+                println!("{color_green}Copied to clipboard!{color_reset}");
+            }
+            "q" => {
+                println!("Exiting.");
+                break;
+            }
+            _ => println!("Unknown command. Type 'c' to copy or 'q' to quit."),
+        }
+    }
+}
+
 fn main() {
     let args = Args::parse();
-
     let config = find_config().and_then(|p| load_config(&p));
-
     let inputs = resolve_inputs(&args, &config);
 
     if inputs.is_empty() {
+        println!("LLMCat\n/\\_/\\\n( o.o )\n> ^ <  LLMCat\nv. 1.2.0");
         return;
     }
 
-    let files = collect_paths(&inputs);
-    let files = apply_excludes(files, &config);
+    let mut full_output = String::new();
+    let files = apply_excludes(collect_files(&inputs), &config);
+    let remove_comments = config
+        .as_ref()
+        .and_then(|c| c.settings.as_ref())
+        .and_then(|s| s.remove_comments)
+        .unwrap_or(false);
 
     for path in files {
         if is_binary(&path) {
             continue;
         }
-
-        let content = match fs::read_to_string(&path) {
+        let raw_content = match fs::read_to_string(&path) {
             Ok(c) => c,
             Err(_) => continue,
         };
 
-        println!("\n===== FILE: {} =====", path.display());
-        print!("{content}");
+        let content = if remove_comments {
+            strip_comments(&raw_content)
+        } else {
+            raw_content
+        };
+        let line_count = content.lines().count();
+
+        println!(
+            "\n{color_red}===== FILE: {color_reset}{} [{color_blue}{} lines{color_red}] ====={color_reset}",
+            path.display(),
+            line_count
+        );
+
+        // Preview
+        let preview: String = content.lines().take(10).collect::<Vec<&str>>().join("\n");
+        println!("{color_green}{preview}{color_reset}");
+        if line_count > 10 {
+            println!("...");
+        }
+
+        // Build clipboard string with proper newlines
+        full_output.push_str(&format!("\n===== FILE: {} =====\n", path.display()));
+        full_output.push_str(&content);
+        if !content.ends_with('\n') {
+            full_output.push_str("\n");
+        }
     }
+
+    println!("{color_yellow}c{color_reset} - copy | {color_yellow}q{color_reset} - quit");
+    read_input(&full_output);
 }
